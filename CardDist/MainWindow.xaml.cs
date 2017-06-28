@@ -19,8 +19,9 @@ using System.Windows.Threading;
 
 /*
  File->new->Project->C#->WPF App "CardDist"
+ download cards.dll from https://onedrive.live.com/redir?resid=D69F3552CEFC21!74629&authkey=!AGaX84aRcmB1fB4&ithint=file%2cDll
  Solution->Add Existing Item Cards.dll (Properties: Copy to Output Directory=Copy If Newer)
- Add reference to System.Drawing
+ Add Project->Add Reference to System.Drawing
      * 
      * * */
 namespace CardDist
@@ -35,6 +36,7 @@ namespace CardDist
             InitializeComponent();
             Width = 1100;
             Height = 800;
+            Title = "CardDist";
             this.Loaded += MainWindow_Loaded;
         }
 
@@ -42,35 +44,40 @@ namespace CardDist
         {
             try
             {
+                var sp = new StackPanel() { Orientation = Orientation.Vertical };
+                sp.Children.Add(new Label() { Content = "Card Dealing Program. Click on form to toggle dealing" });
                 var canvas = new Canvas();
-                this.Content = canvas;
-                var hgtCard = 100;
-                var wdtCard = 80;
+                sp.Children.Add(canvas);
+                this.Content = sp;
+                var hghtCard = 100;
+                var wdthCard = 80;
                 for (var suit = 0; suit < 4; suit++)
                 {
                     for (var denom = 0; denom < 13; denom++)
                     {
+                        // create a new image for a card
                         var img = new Image()
                         {
                             Source = Cards.GetCard((Cards.Suit)suit, denom),
-                            Height = hgtCard
+                            Height = hghtCard
                         };
+                        // add it to the canvas
                         canvas.Children.Add(img);
-                        Canvas.SetLeft(img, denom * wdtCard);
-                        Canvas.SetTop(img, suit * hgtCard);
-
+                        // set it's position on the canvas
+                        Canvas.SetLeft(img, denom * wdthCard);
+                        Canvas.SetTop(img, suit * hghtCard);
                     }
                 }
-                for (int i = 0; i < Cards.NumBacks; i++)
+                for (int i = 0; i < Cards.NumCardBacks; i++)
                 {
                     var img = new Image()
                     {
                         Source = Cards.GetCardBack(i),
-                        Height = hgtCard
+                        Height = hghtCard
                     };
                     canvas.Children.Add(img);
-                    Canvas.SetTop(img, hgtCard * 5);
-                    Canvas.SetLeft(img, i * wdtCard);
+                    Canvas.SetTop(img, hghtCard * 5);
+                    Canvas.SetLeft(img, i * wdthCard);
                 }
                 var rand = new Random(1);
                 var timer = new DispatcherTimer(
@@ -90,7 +97,10 @@ namespace CardDist
                         }
                     },
                     this.Dispatcher);
-                //                timer.Start();
+                this.MouseUp += (om, em) =>
+                {
+                    timer.IsEnabled = !timer.IsEnabled;
+                };
             }
             catch (Exception ex)
             {
@@ -111,7 +121,7 @@ namespace CardDist
             public BitmapSource[] _bitmapCardBacks;
             private static Cards _instance;
 
-            public static int NumBacks { get { return _instance._bitmapCardBacks.Length; } }
+            public static int NumCardBacks { get { return _instance._bitmapCardBacks.Length; } }
 
             public Cards()
             {
@@ -121,7 +131,8 @@ namespace CardDist
                 {
                     throw new FileNotFoundException("Couldn't find cards.dll");
                 }
-                // the cards are resources from 1 - 52. The other images (like card backs) are from 53 - 65
+                // the cards are resources from 1 - 52.
+                // here is a func to load an int rsrc and return it as a BitmapSource
                 Func<int, BitmapSource> GetBmpSrc = (rsrc) =>
                 {
                     // we first load the bitmap as a native resource, and get a ptr to it
@@ -130,19 +141,20 @@ namespace CardDist
                     var bmp = System.Drawing.Bitmap.FromHbitmap(bmRsrc);
                     // we can now delete the LoadBitmap
                     DeleteObject(bmRsrc);
-                    // now we get a GDI bitmap object from the System.Drawing.Bitmap
+                    // now we get a handle to a GDI System.Drawing.Bitmap
                     var hbmp = bmp.GetHbitmap();
                     // we can create a WPF Bitmap source now
                     var bmpSrc = Imaging.CreateBitmapSourceFromHBitmap(
                         hbmp,
-                        IntPtr.Zero,
-                        Int32Rect.Empty,
-                        BitmapSizeOptions.FromEmptyOptions());
+                        palette: IntPtr.Zero,
+                        sourceRect: Int32Rect.Empty,
+                        sizeOptions: BitmapSizeOptions.FromEmptyOptions());
 
                     // we're done with the GDI bmp
                     DeleteObject(hbmp);
                     return bmpSrc;
                 };
+                // now we call our function for the cards and the backs
                 for (Suit suit = Suit.Clubs; suit <= Suit.Spades; suit++)
                 {
                     for (int denom = 0; denom < 13; denom++)
@@ -150,6 +162,7 @@ namespace CardDist
                         _bitmapCards[(int)suit, denom] = GetBmpSrc(13 * (int)suit + denom + 1);
                     }
                 }
+                //The card backs are from 53 - 65
                 _bitmapCardBacks = new BitmapSource[65 - 53 + 1];
                 for (int i = 53; i <= 65; i++)
                 {
@@ -161,7 +174,7 @@ namespace CardDist
             /// Return a BitmapSource
             /// </summary>
             /// <param name="nSuit"></param>
-            /// <param name="nDenom">1-13 = 2,3,4,J,Q,K,A</param>
+            /// <param name="nDenom">1-13 = A, 2,3,4,J,Q,K</param>
             /// <returns></returns>
             public static BitmapSource GetCard(Suit nSuit, int nDenom)
             {
