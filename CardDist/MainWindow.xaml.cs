@@ -1,20 +1,11 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 using System.Windows.Threading;
 
 /*
@@ -45,7 +36,7 @@ namespace CardDist
             try
             {
                 var sp = new StackPanel() { Orientation = Orientation.Vertical };
-                sp.Children.Add(new Label() { Content = "Card Dealing Program. Click on form to toggle dealing" });
+                sp.Children.Add(new Label() { Content = "Card Dealing Program. Click to toggle dealing" });
                 var canvas = new Canvas();
                 sp.Children.Add(canvas);
                 this.Content = sp;
@@ -81,19 +72,19 @@ namespace CardDist
                 }
                 var rand = new Random(1);
                 var timer = new DispatcherTimer(
-                    TimeSpan.FromMilliseconds(1),
+                    TimeSpan.FromMilliseconds(40),
                     DispatcherPriority.Normal,
                     (o, args) =>
                     {
-                        for (int i = 0; i < 52; i++)
+                        for (int n = 0; n < 52; n++)
                         {
                             //get a random number 0-51
                             var tempNdx = rand.Next(52);
-                            // exchange the Image.Source of the ith one with the tempNdx
+                            // exchange the Image.Source of the nth one with the tempNdx
                             // the child of a canvas is a UIElement, so we need to cast it to an Image
                             var tempSrc = ((Image)canvas.Children[tempNdx]).Source;
-                            ((Image)canvas.Children[tempNdx]).Source = ((Image)(canvas.Children[i])).Source;
-                            ((Image)canvas.Children[i]).Source = tempSrc;
+                            ((Image)canvas.Children[tempNdx]).Source = ((Image)(canvas.Children[n])).Source;
+                            ((Image)canvas.Children[n]).Source = tempSrc;
                         }
                     },
                     this.Dispatcher);
@@ -121,7 +112,7 @@ namespace CardDist
             public BitmapSource[] _bitmapCardBacks;
             private static Cards _instance;
 
-            public static int NumCardBacks { get { return _instance._bitmapCardBacks.Length; } }
+            public static int NumCardBacks => _instance._bitmapCardBacks.Length;
 
             public Cards()
             {
