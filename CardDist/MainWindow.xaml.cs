@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -11,6 +10,7 @@ using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
@@ -32,14 +32,49 @@ namespace CardDist
         public MainWindow()
         {
             InitializeComponent();
+            Width = 900;
+            Height = 900;
+            WindowState = WindowState.Maximized;
             this.Loaded += MainWindow_Loaded;
         }
+        Image[,] _images;
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
             try
             {
-                var x = new Cards(this);
+                _images = new Image[4, 13];
+                var canvas = new Canvas();
+                this.Content = canvas;
+                for (var suit = 0; suit < 4; suit++)
+                {
+                    for (var denom = 0; denom < 13; denom++)
+                    {
+                        var img = new Image()
+                        {
+                            Source = Cards.GetCard((Cards.Suit)suit, denom),
+                            //                            Height = 100
+                        };
+                        canvas.Children.Add(img);
+                        Canvas.SetLeft(img, denom * 100);
+                        Canvas.SetTop(img, suit * 100);
+                        _images[suit, denom] = img;
+
+                    }
+
+                }
+                //var img = new System.Windows.Controls.Image();
+                //img.Source = Cards.GetCard(Cards.Suit.Diamonds, 4);
+                //img.Height = 200;
+                ////img.Width = 500;
+                //var sp = new StackPanel()
+                //{
+                //    Orientation = Orientation.Vertical
+                //};
+                //sp.Children.Add(new TextBlock() { Text = "top" });
+                //sp.Children.Add(img);
+                //sp.Children.Add(new TextBlock() { Text = "bottom" });
+                //this.Content = sp;
 
             }
             catch (Exception ex)
@@ -50,80 +85,71 @@ namespace CardDist
 
         public class Cards
         {
-
-            public Cards(Window wind)
+            public enum Suit
             {
-                //IntPtr hToken;
-                //StartupInput sinput = new StartupInput() { GdiplusVersion = 1, DebugEventCallback = IntPtr.Zero, SuppressBackgroundThread = false, SuppressExternalCodecs = false };
-                //StartupOutput soutput = new StartupOutput() { hook = IntPtr.Zero, unhook = IntPtr.Zero };
-                //GdiplusStartup(out hToken, ref sinput, out soutput);
+                Clubs = 0,
+                Diamonds = 1,
+                Hearts = 2,
+                Spades = 3
+            }
+            private BitmapSource[,] _bitmapCards;
+            private static Cards _instance;
+            public Cards()
+            {
+                _bitmapCards = new BitmapSource[4, 13];
                 var hmodCards = LoadLibraryEx("cards.dll", IntPtr.Zero, LOAD_LIBRARY_AS_DATAFILE);
                 if (hmodCards == IntPtr.Zero)
                 {
                     throw new FileNotFoundException("Couldn't find cards.dll");
                 }
-                var bmRes = FindResource(hmodCards, 1, 2);
-                var bmSize = SizeofResource(hmodCards, bmRes);
-                var bmIntPtr = LoadResource(hmodCards, bmRes);
-                var hb = LoadBitmap(hmodCards, 1);
+                for (Suit suit = Suit.Clubs; suit <= Suit.Spades; suit++)
+                {
+                    for (int denom = 0; denom < 13; denom++)
+                    {
+//                        var bmRsrc = LoadBitmap(hmodCards, 12);
+                        var bmRsrc = LoadBitmap(hmodCards, 13 * (int)suit + denom + 1);
+                        var bmpSrc = Imaging.CreateBitmapSourceFromHBitmap(
+                            bmRsrc,
+                            IntPtr.Zero,
+                            Int32Rect.Empty,
+                            BitmapSizeOptions.FromEmptyOptions());
 
-                //var bytes = new byte[bmSize];
-                //Marshal.Copy(bmIntPtr, bytes, 0, bmSize);
-                //using (var msb = new MemoryStream())
-                //{
-                //    var bi = new BitmapImage();
-                //    bi.BeginInit();
-                //    bi.StreamSource = msb;
-                //    bi.EndInit();
-                //    var ximg = new System.Windows.Controls.Image();
-                //    ximg.Source = bi;
-                //    wind.Content = ximg;
-                //}
-                //return;
-
-                //var bytes = new byte[bmSize];
-                //Marshal.Copy(hmodCards, bytes, 0, bmSize);
-                //var sss = Bitmap.FromHbitmap(bmIntPtr);
-
-                //using (var mstr = new MemoryStream(bytes))
-                //{
-                //    var bmp = (Bitmap)Bitmap.FromStream(mstr);
-                //}
-
-
-                var bmSrc = System.Windows.Interop.Imaging.CreateBitmapSourceFromHBitmap(hb, IntPtr.Zero, Int32Rect.Empty, BitmapSizeOptions.FromEmptyOptions());
-                //                var bmSrc = System.Windows.Interop.Imaging.CreateBitmapSourceFromHBitmap(hb, IntPtr.Zero, new Int32Rect(0, 0, 30, 30), BitmapSizeOptions.FromWidthAndHeight(30, 30));
-                var img = new System.Windows.Controls.Image();
-                img.Source = bmSrc;
-                img.Height = 100;
-                img.Width = 100;
-                //var sp = new StackPanel()
-                //{
-                //    Orientation = Orientation.Vertical
-                //};
-                //sp.Children.Add(new TextBlock() { Text = "top" });
-                //sp.Children.Add(img);
-                //sp.Children.Add(new TextBlock() { Text = "bottom" });
-                wind.Content = img;
-
-                //var imsrc = new BitmapImage(new Uri(@"C:\t.jpg"));
-                //var image = new System.Windows.Controls.Image()
-                //{
-                //    Source = imsrc
-                //};
-                //wind.Content = image;
-
-
-                //var xx = Bitmap.FromResource(hmodCards, "10");
-                //var bytes = new byte[bmSize];
-                //Marshal.Copy(bmIntPtr, bytes, 0, bmSize);
-                //var sss = Bitmap.FromHbitmap(bmIntPtr);
-
-                //using (var mstr = new MemoryStream(bytes))
-                //{
-                //    var bmp = (Bitmap)Bitmap.FromStream(mstr);
-                //}
+                        var x = bmpSrc.Palette;
+                        if (x == null)
+                        {
+                            var wbmp = new WriteableBitmap(bmpSrc);
+                            var arr = new byte[(int)wbmp.Width * (int)wbmp.Height * wbmp.Format.BitsPerPixel];
+                            wbmp.CopyPixels(arr, wbmp.Format.BitsPerPixel * (int)wbmp.Width, 0);
+                            var lstColors = new[] { Colors.Red, Colors.Blue, Colors.Green };
+                            BitmapPalette pal = new BitmapPalette(lstColors);
+                            wbmp = new WriteableBitmap((int)wbmp.Width, (int)wbmp.Height, 96, 96, PixelFormats.Bgra32, null);
+                            wbmp.WritePixels(new Int32Rect(0, 0, (int)wbmp.Width, (int)wbmp.Height), arr, wbmp.Format.BitsPerPixel * (int)wbmp.Width, 0);
+                            bmpSrc = wbmp;
+                        }
+                        _bitmapCards[(int)suit, denom] = bmpSrc;
+                    }
+                }
             }
+
+            /// <summary>
+            /// Return a BitmapSource
+            /// </summary>
+            /// <param name="nSuit"></param>
+            /// <param name="nDenom">1-13 = 2,3,4,J,Q,K,A</param>
+            /// <returns></returns>
+            public static BitmapSource GetCard(Suit nSuit, int nDenom)
+            {
+                if (_instance == null)
+                {
+                    _instance = new Cards();
+                }
+                if (nDenom < 0 || nDenom > 12)
+                {
+                    throw new ArgumentOutOfRangeException();
+                }
+                return _instance._bitmapCards[(int)nSuit, nDenom];
+            }
+
         }
 
         public const int LOAD_LIBRARY_AS_DATAFILE = 2;
