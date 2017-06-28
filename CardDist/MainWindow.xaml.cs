@@ -98,6 +98,10 @@ namespace CardDist
                 this.Content = ex.ToString();
             }
         }
+        public class Hand
+        {
+
+        }
 
         public class Cards
         {
