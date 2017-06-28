@@ -15,6 +15,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using System.Windows.Threading;
 
 /*
  File->new->Project->C#->WPF App "CardDist"
@@ -37,15 +38,16 @@ namespace CardDist
             WindowState = WindowState.Maximized;
             this.Loaded += MainWindow_Loaded;
         }
-        Image[,] _images;
+        Image[] _images;
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
             try
             {
-                _images = new Image[4, 13];
+                _images = new Image[52];
                 var canvas = new Canvas();
                 this.Content = canvas;
+                var hgt = 100;
                 for (var suit = 0; suit < 4; suit++)
                 {
                     for (var denom = 0; denom < 13; denom++)
@@ -53,29 +55,65 @@ namespace CardDist
                         var img = new Image()
                         {
                             Source = Cards.GetCard((Cards.Suit)suit, denom),
-                            //                            Height = 100
+                            Height = hgt
                         };
                         canvas.Children.Add(img);
                         Canvas.SetLeft(img, denom * 100);
-                        Canvas.SetTop(img, suit * 100);
-                        _images[suit, denom] = img;
+                        Canvas.SetTop(img, suit * hgt);
+                        _images[suit * 4 + denom] = img;
 
                     }
-
                 }
-                //var img = new System.Windows.Controls.Image();
-                //img.Source = Cards.GetCard(Cards.Suit.Diamonds, 4);
-                //img.Height = 200;
-                ////img.Width = 500;
-                //var sp = new StackPanel()
-                //{
-                //    Orientation = Orientation.Vertical
-                //};
-                //sp.Children.Add(new TextBlock() { Text = "top" });
-                //sp.Children.Add(img);
-                //sp.Children.Add(new TextBlock() { Text = "bottom" });
-                //this.Content = sp;
+                for (int i = 0; i < Cards.NumBacks; i++)
+                {
+                    var img = new Image()
+                    {
+                        Source = Cards.GetCardBack(i),
+                        Height = hgt
+                    };
+                    canvas.Children.Add(img);
+                    Canvas.SetTop(img, hgt * 5);
+                    Canvas.SetLeft(img, i * 100);
+                }
+                var rand = new Random(1);
+                var timer = new DispatcherTimer(
+                    TimeSpan.FromMilliseconds(100),
+                    DispatcherPriority.Normal,
+                    (o, args) =>
+                    {
+                        //                        canvas.Children.Clear();
+                        for (int i = 0; i < 52; i++)
+                        {
+                            //int nSuit = i / 13;
+                            //int nDenom = i - nSuit * 13;
 
+                            var tempNdx = rand.Next(52);
+                            var tempSrc = ((Image)canvas.Children[tempNdx]).Source;
+                            ((Image)canvas.Children[tempNdx]).Source = ((Image)(canvas.Children[i])).Source;
+                            ((Image)canvas.Children[i]).Source = tempSrc;
+
+                            //var temp = canvas.Children[tempNdx];
+                            //canvas.Children[tempNdx] = canvas.Children[i];
+                            //canvas.Children[i] = temp;
+                            //var temp = _images[tempNdx];
+                            //_images[tempNdx] = _images[i];
+                            //_images[i] = temp;
+                        }
+                        foreach (var img in _images)
+                        {
+
+                        }
+                        //for (var suit = 0; suit < 4; suit++)
+                        //{
+                        //    for (var denom = 0; denom < 13; denom++)
+                        //    {
+                        //        _im
+                        //    }
+                        //}
+
+                    },
+                    this.Dispatcher);
+                //                timer.Start();
             }
             catch (Exception ex)
             {
@@ -93,7 +131,11 @@ namespace CardDist
                 Spades = 3
             }
             private BitmapSource[,] _bitmapCards;
+            public BitmapSource[] _bitmapCardBacks;
             private static Cards _instance;
+
+            public static int NumBacks { get { return _instance._bitmapCardBacks.Length; } }
+
             public Cards()
             {
                 _bitmapCards = new BitmapSource[4, 13];
@@ -102,32 +144,39 @@ namespace CardDist
                 {
                     throw new FileNotFoundException("Couldn't find cards.dll");
                 }
+                // the cards are resources from 1 - 52. The other images (like card backs) are from 53 - 65
+                Func<int, BitmapSource> GetBmpSrc = (rsrc) =>
+                {
+                    // we first load the bitmap as a native resource, and get a ptr to it
+                    var bmRsrc = LoadBitmap(hmodCards, rsrc);
+                    // now we create a System.Drawing.Bitmap from the native bitmap
+                    var bmp = System.Drawing.Bitmap.FromHbitmap(bmRsrc);
+                    // we can now delete the LoadBitmap
+                    DeleteObject(bmRsrc);
+                    // now we get a GDI bitmap object from the System.Drawing.Bitmap
+                    var hbmp = bmp.GetHbitmap();
+                    // we can create a WPF Bitmap source now
+                    var bmpSrc = Imaging.CreateBitmapSourceFromHBitmap(
+                        hbmp,
+                        IntPtr.Zero,
+                        Int32Rect.Empty,
+                        BitmapSizeOptions.FromEmptyOptions());
+
+                    // we're done with the GDI bmp
+                    DeleteObject(hbmp);
+                    return bmpSrc;
+                };
                 for (Suit suit = Suit.Clubs; suit <= Suit.Spades; suit++)
                 {
                     for (int denom = 0; denom < 13; denom++)
                     {
-//                        var bmRsrc = LoadBitmap(hmodCards, 12);
-                        var bmRsrc = LoadBitmap(hmodCards, 13 * (int)suit + denom + 1);
-                        var bmpSrc = Imaging.CreateBitmapSourceFromHBitmap(
-                            bmRsrc,
-                            IntPtr.Zero,
-                            Int32Rect.Empty,
-                            BitmapSizeOptions.FromEmptyOptions());
-
-                        var x = bmpSrc.Palette;
-                        if (x == null)
-                        {
-                            var wbmp = new WriteableBitmap(bmpSrc);
-                            var arr = new byte[(int)wbmp.Width * (int)wbmp.Height * wbmp.Format.BitsPerPixel];
-                            wbmp.CopyPixels(arr, wbmp.Format.BitsPerPixel * (int)wbmp.Width, 0);
-                            var lstColors = new[] { Colors.Red, Colors.Blue, Colors.Green };
-                            BitmapPalette pal = new BitmapPalette(lstColors);
-                            wbmp = new WriteableBitmap((int)wbmp.Width, (int)wbmp.Height, 96, 96, PixelFormats.Bgra32, null);
-                            wbmp.WritePixels(new Int32Rect(0, 0, (int)wbmp.Width, (int)wbmp.Height), arr, wbmp.Format.BitsPerPixel * (int)wbmp.Width, 0);
-                            bmpSrc = wbmp;
-                        }
-                        _bitmapCards[(int)suit, denom] = bmpSrc;
+                        _bitmapCards[(int)suit, denom] = GetBmpSrc(13 * (int)suit + denom + 1);
                     }
+                }
+                _bitmapCardBacks = new BitmapSource[65 - 53 + 1];
+                for (int i = 53; i <= 65; i++)
+                {
+                    _bitmapCardBacks[i - 53] = GetBmpSrc(i);
                 }
             }
 
@@ -150,40 +199,21 @@ namespace CardDist
                 return _instance._bitmapCards[(int)nSuit, nDenom];
             }
 
+            internal static ImageSource GetCardBack(int i)
+            {
+                return _instance._bitmapCardBacks[i];
+            }
         }
 
         public const int LOAD_LIBRARY_AS_DATAFILE = 2;
-        [DllImport("gdiplus.dll", CharSet = CharSet.Unicode, ExactSpelling = true)]
-        static extern int GdiplusStartup(out IntPtr token, ref StartupInput input,
-                out StartupOutput output);
-        [StructLayout(LayoutKind.Sequential)]
-        struct StartupOutput
-        {
-            public IntPtr hook;
-            public IntPtr unhook;
-        }
 
-        [StructLayout(LayoutKind.Sequential)]
-        struct StartupInput
-        {
-            public int GdiplusVersion;
-            public IntPtr DebugEventCallback;
-            public bool SuppressBackgroundThread;
-            public bool SuppressExternalCodecs;
-        }
         [DllImport("kernel32.dll", SetLastError = true)]
         static extern IntPtr LoadLibraryEx(string lpFileName, IntPtr hFileReserved, uint dwFlags);
-        [DllImport("User32.dll")]
-        public static extern IntPtr LoadImage(IntPtr hInstance, int uID, uint type, int width, int height, int load);
+
         [DllImport("User32.dll")]
         public static extern IntPtr LoadBitmap(IntPtr hInstance, int uID);
-        [DllImport("kernel32.dll")]
-        static extern IntPtr FindResource(IntPtr hModule, int lpName, int lpType);
-        [DllImport("kernel32.dll")]
-        static extern IntPtr FindResource(IntPtr hModule, string lpName, string lpType);
-        [DllImport("kernel32.dll", SetLastError = true)]
-        static extern IntPtr LoadResource(IntPtr hModule, IntPtr hResInfo);
-        [DllImport("kernel32.dll", SetLastError = true)]
-        static extern int SizeofResource(IntPtr hModule, IntPtr hResInfo);
+
+        [DllImport("gdi32")]
+        static extern int DeleteObject(IntPtr o);
     }
 }
