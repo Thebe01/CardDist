@@ -33,21 +33,19 @@ namespace CardDist
         public MainWindow()
         {
             InitializeComponent();
-            Width = 900;
-            Height = 900;
-            WindowState = WindowState.Maximized;
+            Width = 1100;
+            Height = 800;
             this.Loaded += MainWindow_Loaded;
         }
-        Image[] _images;
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
             try
             {
-                _images = new Image[52];
                 var canvas = new Canvas();
                 this.Content = canvas;
-                var hgt = 100;
+                var hgtCard = 100;
+                var wdtCard = 80;
                 for (var suit = 0; suit < 4; suit++)
                 {
                     for (var denom = 0; denom < 13; denom++)
@@ -55,12 +53,11 @@ namespace CardDist
                         var img = new Image()
                         {
                             Source = Cards.GetCard((Cards.Suit)suit, denom),
-                            Height = hgt
+                            Height = hgtCard
                         };
                         canvas.Children.Add(img);
-                        Canvas.SetLeft(img, denom * 100);
-                        Canvas.SetTop(img, suit * hgt);
-                        _images[suit * 4 + denom] = img;
+                        Canvas.SetLeft(img, denom * wdtCard);
+                        Canvas.SetTop(img, suit * hgtCard);
 
                     }
                 }
@@ -69,48 +66,28 @@ namespace CardDist
                     var img = new Image()
                     {
                         Source = Cards.GetCardBack(i),
-                        Height = hgt
+                        Height = hgtCard
                     };
                     canvas.Children.Add(img);
-                    Canvas.SetTop(img, hgt * 5);
-                    Canvas.SetLeft(img, i * 100);
+                    Canvas.SetTop(img, hgtCard * 5);
+                    Canvas.SetLeft(img, i * wdtCard);
                 }
                 var rand = new Random(1);
                 var timer = new DispatcherTimer(
-                    TimeSpan.FromMilliseconds(100),
+                    TimeSpan.FromMilliseconds(1),
                     DispatcherPriority.Normal,
                     (o, args) =>
                     {
-                        //                        canvas.Children.Clear();
                         for (int i = 0; i < 52; i++)
                         {
-                            //int nSuit = i / 13;
-                            //int nDenom = i - nSuit * 13;
-
+                            //get a random number 0-51
                             var tempNdx = rand.Next(52);
+                            // exchange the Image.Source of the ith one with the tempNdx
+                            // the child of a canvas is a UIElement, so we need to cast it to an Image
                             var tempSrc = ((Image)canvas.Children[tempNdx]).Source;
                             ((Image)canvas.Children[tempNdx]).Source = ((Image)(canvas.Children[i])).Source;
                             ((Image)canvas.Children[i]).Source = tempSrc;
-
-                            //var temp = canvas.Children[tempNdx];
-                            //canvas.Children[tempNdx] = canvas.Children[i];
-                            //canvas.Children[i] = temp;
-                            //var temp = _images[tempNdx];
-                            //_images[tempNdx] = _images[i];
-                            //_images[i] = temp;
                         }
-                        foreach (var img in _images)
-                        {
-
-                        }
-                        //for (var suit = 0; suit < 4; suit++)
-                        //{
-                        //    for (var denom = 0; denom < 13; denom++)
-                        //    {
-                        //        _im
-                        //    }
-                        //}
-
                     },
                     this.Dispatcher);
                 //                timer.Start();
