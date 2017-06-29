@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -78,7 +79,7 @@ namespace CardDist
                 {
                     deck[i] = i;
                 }
-            
+
                 var timer = new DispatcherTimer(
                     TimeSpan.FromMilliseconds(400),
                     DispatcherPriority.Normal,
@@ -127,29 +128,70 @@ namespace CardDist
         /// <summary>
         /// holds 13 cards for e.g. N,S,E,W 
         /// </summary>
-        public class Hand : Canvas
+        public class Hand : Canvas, IComparer
         {
             Card[] _cards;
-
-
             public Hand(List<int> list)
             {
                 _cards = new Card[13];
                 var l = new List<Card>();
-                for ( var i = 0; i < 13; i++)
+                for (var i = 0; i < 13; i++)
                 {
                     var card = new Card(list[i]);
                     l.Add(card);
-                    this.Children.Add(card);
-                    Canvas.SetLeft(card, i * 10);
+                    _cards[i] = card;
                 }
+                // sorting of cards in a hand is not the same
+                // order as C,D,H,S: we want to alternate red/black
+                Array.Sort(_cards, this);
+                //                _cards = l.OrderByDescending(c => c).ToArray();
+
+                for (var i = 0; i < 13; i++)
+                {
+                    this.Children.Add(_cards[i]);
+                    Canvas.SetLeft(_cards[i], i * 10);
+                }
+            }
+            static Cards.Suit[] arr = { Cards.Suit.Spades, Cards.Suit.Hearts, Cards.Suit.Clubs, Cards.Suit.Diamonds };
+            public int Compare(object x, object y)
+            {
+                if (x as Card != null && y as Card != null)
+                {
+                    var xCard = x as Card;
+                    var yCard = y as Card;
+                    if (xCard._suit == yCard._suit)
+                    {
+                        return yCard._denom.CompareTo(xCard._denom);
+                    }
+                    switch (xCard._suit)
+                    {
+                        case Cards.Suit.Spades:
+                            return -1;
+                        case Cards.Suit.Hearts:
+                            if (yCard._suit == Cards.Suit.Spades)
+                            {
+                                return 1;
+                            }
+                            return -1;
+                        case Cards.Suit.Clubs:
+                            if (yCard._suit == Cards.Suit.Spades || yCard._suit == Cards.Suit.Hearts)
+                            {
+                                return 1;
+                            }
+                            return -1;
+                        case Cards.Suit.Diamonds:
+                            return 1;
+                    }
+
+                }
+                throw new InvalidOperationException();
             }
         }
 
         public class Card : Image, IComparable
         {
-            Cards.Suit _suit;
-            int _denom;
+            public Cards.Suit _suit;
+            public int _denom;
             public Card(int value)
             {
                 int suit = value / 13;
@@ -160,7 +202,16 @@ namespace CardDist
 
             public int CompareTo(object obj)
             {
-                throw new NotImplementedException();
+                if (obj as Card != null)
+                {
+                    var other = (Card)obj;
+                    if (_suit == other._suit)
+                    {
+                        return _denom.CompareTo(other._denom);
+                    }
+                    return _suit.CompareTo(other._suit);
+                }
+                throw new InvalidOperationException();
             }
             public override string ToString()
             {
