@@ -25,12 +25,12 @@ namespace CardDist
     /// </summary>
     public partial class MainWindow : Window
     {
-        public int _hghtCard = 100;
-        public int _wdthCard = 80;
+        public static int _hghtCard = 150;
+        public static int _wdthCard = 130;
         public MainWindow()
         {
             InitializeComponent();
-            Width = 1100;
+            Width = 1200;
             Height = 800;
             Title = "CardDist";
             this.Loaded += MainWindow_Loaded;
@@ -110,7 +110,7 @@ namespace CardDist
                         Canvas.SetLeft(west, 0);
                         canvas.Children.Add(east);
                         Canvas.SetTop(east, 200);
-                        Canvas.SetLeft(east, 800);
+                        Canvas.SetLeft(east, 700);
 
                     },
                     this.Dispatcher);
@@ -144,15 +144,28 @@ namespace CardDist
                 // sorting of cards in a hand is not the same
                 // order as C,D,H,S: we want to alternate red/black
                 Array.Sort(_cards, this);
-                //                _cards = l.OrderByDescending(c => c).ToArray();
 
                 for (var i = 0; i < 13; i++)
                 {
                     this.Children.Add(_cards[i]);
-                    Canvas.SetLeft(_cards[i], i * 10);
+                    Canvas.SetLeft(_cards[i], i * MainWindow._wdthCard / 7);
                 }
+                var label = new Label()
+                {
+                    Content = GetPoints.ToString()
+                };
+                this.Children.Add(label);
+                Canvas.SetTop(label, MainWindow._hghtCard + 5);
             }
-            static Cards.Suit[] arr = { Cards.Suit.Spades, Cards.Suit.Hearts, Cards.Suit.Clubs, Cards.Suit.Diamonds };
+
+            public int GetPoints
+            {
+                get
+                {
+                    return _cards.Sum(c => c.Points);
+                }
+
+            }
             public int Compare(object x, object y)
             {
                 if (x as Card != null && y as Card != null)
@@ -198,7 +211,11 @@ namespace CardDist
                 _suit = (Cards.Suit)suit;
                 _denom = value - suit * 13;
                 Source = Cards.GetCard(_suit, _denom);
+                Height = MainWindow._hghtCard;
             }
+
+            // A=12, K=11, Q=10, J = 9. Pts = denom - 9
+            public int Points { get { return _denom >= 9 ? _denom - 8 : 0; } }
 
             public int CompareTo(object obj)
             {
