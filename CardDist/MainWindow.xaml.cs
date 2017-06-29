@@ -135,10 +135,11 @@ namespace CardDist
             public Hand(List<int> list)
             {
                 _cards = new Card[13];
+                var l = new List<Card>();
                 for ( var i = 0; i < 13; i++)
                 {
                     var card = new Card(list[i]);
-                    _cards[i] = card ;
+                    l.Add(card);
                     this.Children.Add(card);
                     Canvas.SetLeft(card, i * 10);
                 }
@@ -233,7 +234,7 @@ namespace CardDist
             /// Return a BitmapSource
             /// </summary>
             /// <param name="nSuit"></param>
-            /// <param name="nDenom">1-13 = A, 2,3,4,J,Q,K</param>
+            /// <param name="nDenom">0-12 = 2,3,4,J,Q,K,A</param>
             /// <returns></returns>
             public static BitmapSource GetCard(Suit nSuit, int nDenom)
             {
