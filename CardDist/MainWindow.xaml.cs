@@ -112,6 +112,7 @@ namespace CardDist
                 Hearts = 2,
                 Spades = 3
             }
+            // put cards in 2 d array, suit, rank (0-12 => 2-A)
             private BitmapSource[,] _bitmapCards;
             public BitmapSource[] _bitmapCardBacks;
             private static Cards _instance;
@@ -154,7 +155,9 @@ namespace CardDist
                 {
                     for (int denom = 0; denom < 13; denom++)
                     {
-                        _bitmapCards[(int)suit, denom] = GetBmpSrc(13 * (int)suit + denom + 1);
+                        // 0 -12 => 2,3,...j,q,k,a
+                        int ndx = 1 + 13 * (int)suit + (denom == 12 ? 0 : denom + 1);
+                        _bitmapCards[(int)suit, denom] = GetBmpSrc(ndx);
                     }
                 }
                 //The card backs are from 53 - 65
