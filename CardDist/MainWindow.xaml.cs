@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
@@ -22,6 +24,8 @@ namespace CardDist
     /// </summary>
     public partial class MainWindow : Window
     {
+        public int _hghtCard = 100;
+        public int _wdthCard = 80;
         public MainWindow()
         {
             InitializeComponent();
@@ -40,52 +44,73 @@ namespace CardDist
                 var canvas = new Canvas();
                 sp.Children.Add(canvas);
                 this.Content = sp;
-                var hghtCard = 100;
-                var wdthCard = 80;
-                for (var suit = 0; suit < 4; suit++)
-                {
-                    for (var denom = 0; denom < 13; denom++)
-                    {
-                        // create a new image for a card
-                        var img = new Image()
-                        {
-                            Source = Cards.GetCard((Cards.Suit)suit, denom),
-                            Height = hghtCard
-                        };
-                        // add it to the canvas
-                        canvas.Children.Add(img);
-                        // set it's position on the canvas
-                        Canvas.SetLeft(img, denom * wdthCard);
-                        Canvas.SetTop(img, suit * hghtCard);
-                    }
-                }
-                for (int i = 0; i < Cards.NumCardBacks; i++)
-                {
-                    var img = new Image()
-                    {
-                        Source = Cards.GetCardBack(i),
-                        Height = hghtCard
-                    };
-                    canvas.Children.Add(img);
-                    Canvas.SetTop(img, hghtCard * 5);
-                    Canvas.SetLeft(img, i * wdthCard);
-                }
+                //for (var suit = 0; suit < 4; suit++)
+                //{
+                //    for (var denom = 0; denom < 13; denom++)
+                //    {
+                //        // create a new image for a card
+                //        var img = new Image()
+                //        {
+                //            Source = Cards.GetCard((Cards.Suit)suit, denom),
+                //            Height = hghtCard
+                //        };
+                //        // add it to the canvas
+                //        canvas.Children.Add(img);
+                //        // set it's position on the canvas
+                //        Canvas.SetLeft(img, denom * wdthCard);
+                //        Canvas.SetTop(img, suit * hghtCard);
+                //    }
+                //}
+                //for (int i = 0; i < Cards.NumCardBacks; i++)
+                //{
+                //    var img = new Image()
+                //    {
+                //        Source = Cards.GetCardBack(i),
+                //        Height = hghtCard
+                //    };
+                //    canvas.Children.Add(img);
+                //    Canvas.SetTop(img, hghtCard * 5);
+                //    Canvas.SetLeft(img, i * wdthCard);
+                //}
                 var rand = new Random(1);
+                int[] deck = new int[52];
+                for (int i = 0; i < 52; i++)
+                {
+                    deck[i] = i;
+                }
+            
                 var timer = new DispatcherTimer(
-                    TimeSpan.FromMilliseconds(40),
+                    TimeSpan.FromMilliseconds(400),
                     DispatcherPriority.Normal,
                     (o, args) =>
                     {
+                        canvas.Children.Clear();
+                        // shuffle
                         for (int n = 0; n < 52; n++)
                         {
-                            //get a random number 0-51
                             var tempNdx = rand.Next(52);
-                            // exchange the Image.Source of the nth one with the tempNdx
-                            // the child of a canvas is a UIElement, so we need to cast it to an Image
-                            var tempSrc = ((Image)canvas.Children[tempNdx]).Source;
-                            ((Image)canvas.Children[tempNdx]).Source = ((Image)(canvas.Children[n])).Source;
-                            ((Image)canvas.Children[n]).Source = tempSrc;
+                            var tempSrc = deck[tempNdx];
+                            deck[tempNdx] = deck[n];
+                            deck[n] = tempSrc;
                         }
+                        // deal
+                        var north = new Hand(deck.Skip(0).Take(13).ToList());
+                        var south = new Hand(deck.Skip(13).Take(13).ToList());
+                        var east = new Hand(deck.Skip(26).Take(13).ToList());
+                        var west = new Hand(deck.Skip(39).Take(13).ToList());
+                        canvas.Children.Add(north);
+                        Canvas.SetTop(north, 0);
+                        Canvas.SetLeft(north, 300);
+                        canvas.Children.Add(south);
+                        Canvas.SetTop(south, 500);
+                        Canvas.SetLeft(south, 300);
+                        canvas.Children.Add(west);
+                        Canvas.SetTop(west, 200);
+                        Canvas.SetLeft(west, 0);
+                        canvas.Children.Add(east);
+                        Canvas.SetTop(east, 200);
+                        Canvas.SetLeft(east, 800);
+
                     },
                     this.Dispatcher);
                 this.MouseUp += (om, em) =>
@@ -98,9 +123,48 @@ namespace CardDist
                 this.Content = ex.ToString();
             }
         }
-        public class Hand
-        {
 
+        /// <summary>
+        /// holds 13 cards for e.g. N,S,E,W 
+        /// </summary>
+        public class Hand : Canvas
+        {
+            Card[] _cards;
+
+
+            public Hand(List<int> list)
+            {
+                _cards = new Card[13];
+                for ( var i = 0; i < 13; i++)
+                {
+                    var card = new Card(list[i]);
+                    _cards[i] = card ;
+                    this.Children.Add(card);
+                    Canvas.SetLeft(card, i * 10);
+                }
+            }
+        }
+
+        public class Card : Image, IComparable
+        {
+            Cards.Suit _suit;
+            int _denom;
+            public Card(int value)
+            {
+                int suit = value / 13;
+                _suit = (Cards.Suit)suit;
+                _denom = value - suit * 13;
+                Source = Cards.GetCard(_suit, _denom);
+            }
+
+            public int CompareTo(object obj)
+            {
+                throw new NotImplementedException();
+            }
+            public override string ToString()
+            {
+                return $"{_denom} of {_suit}";
+            }
         }
 
         public class Cards
