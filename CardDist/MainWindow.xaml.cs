@@ -42,21 +42,21 @@ namespace CardDist
                 this.Content = sp;
                 var hghtCard = 100;
                 var wdthCard = 80;
-                for (var suit = 0; suit < 4; suit++)
+                foreach (Cards.Suit suit in Enum.GetValues(typeof(Cards.Suit)))
                 {
                     for (var denom = 0; denom < 13; denom++)
                     {
                         // create a new image for a card
                         var img = new Image()
                         {
-                            Source = Cards.GetCard((Cards.Suit)suit, denom),
+                            Source = Cards.GetCard(suit, denom),
                             Height = hghtCard
                         };
                         // add it to the canvas
                         canvas.Children.Add(img);
                         // set it's position on the canvas
                         Canvas.SetLeft(img, denom * wdthCard);
-                        Canvas.SetTop(img, suit * hghtCard);
+                        Canvas.SetTop(img, (int)suit * hghtCard);
                     }
                 }
                 for (int i = 0; i < Cards.NumCardBacks; i++)
