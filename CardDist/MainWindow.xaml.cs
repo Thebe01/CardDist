@@ -54,6 +54,7 @@ namespace CardDist
                         };
                         // add it to the canvas
                         canvas.Children.Add(img);
+                        this.SaveImageToFile(img, $"Card_{suit}_{denom}.jpg");
                         // set it's position on the canvas
                         Canvas.SetLeft(img, denom * wdthCard);
                         Canvas.SetTop(img, (int)suit * hghtCard);
@@ -97,6 +98,22 @@ namespace CardDist
             {
                 this.Content = ex.ToString();
             }
+        }
+
+        private void SaveImageToFile(Image img, string filename)
+        {
+            if (File.Exists(filename))
+            {
+                File.Delete(filename);
+            }
+            using (var fs = new FileStream(filename, FileMode.Create))
+            {
+                var jpgEncoder = new JpegBitmapEncoder();
+                var bmpframe = BitmapFrame.Create((BitmapSource)img.Source);
+                jpgEncoder.Frames.Add(bmpframe);
+                jpgEncoder.Save(fs);
+            }
+
         }
 
         public class Cards
