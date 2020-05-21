@@ -75,22 +75,24 @@ namespace CardDist
                 //}
                 var rand = new Random(1);
                 int[] deck = new int[52];
-                for (int i = 0; i < 52; i++)
+                for (var suit = 0; suit < 4; suit++)
                 {
                     for (var denom = 0; denom < 13; denom++)
                     {
+                        var num = suit * 13 + denom;
+                        deck[num] = num; 
                         // create a new image for a card
                         var img = new Image()
                         {
-                            Source = Cards.GetCard(suit, denom),
-                            Height = hghtCard
+                            Source = Cards.GetCard((Cards.Suit)suit, denom),
+                            Height = _hghtCard
                         };
                         // add it to the canvas
                         canvas.Children.Add(img);
                         this.SaveImageToFile(img, $"Card_{suit}_{denom}.jpg");
                         // set it's position on the canvas
-                        Canvas.SetLeft(img, denom * wdthCard);
-                        Canvas.SetTop(img, (int)suit * hghtCard);
+                        Canvas.SetLeft(img, denom * _wdthCard);
+                        Canvas.SetTop(img, (int)suit * _hghtCard);
                     }
                 }
                 for (int i = 0; i < Cards.NumCardBacks; i++)
@@ -98,11 +100,11 @@ namespace CardDist
                     var img = new Image()
                     {
                         Source = Cards.GetCardBack(i),
-                        Height = hghtCard
+                        Height = _hghtCard
                     };
                     canvas.Children.Add(img);
-                    Canvas.SetTop(img, hghtCard * 5);
-                    Canvas.SetLeft(img, i * wdthCard);
+                    Canvas.SetTop(img, _hghtCard * 5);
+                    Canvas.SetLeft(img, i * _wdthCard);
                 }
 
                 var timer = new DispatcherTimer(
